@@ -110,9 +110,6 @@ function freeradius_ConfigOptions()
  */
 function freeradius_CreateAccount(array $params)
 {
-    $isUsingCustomUsername = false;
-    $isUsingCustomPassword = false;
-
     /* $params[
     *     'serverip' => 'The MySQL IP',
     *     'serverusername' => 'The MySQL Username',
@@ -184,9 +181,9 @@ function freeradius_CreateAccount(array $params)
 function freeradius_SuspendAccount(array $params)
 {
     try {
+        $customFields = $params['customfields'];
 
         $username = $customFields['Username'];
-        $password = $customFields['Password'];
 
         /* Declaring MySQL Connection */
         $mysqli = new mysqli($params['serverip'], $params['serverusername'], $params['serverpassword'], $params['serveraccesshash']);
@@ -211,34 +208,39 @@ function freeradius_SuspendAccount(array $params)
                 return "User not found";
             }
 
+            $stmt->free_result();
             $stmt->close();
 
         } else {
             return "FreeRADIUS Module DataBase Error: " . $mysqli->error;
         }
 
-        $rows = 0;
 
         if($stmt = $mysqli->prepare("SELECT COUNT(*) FROM radcheck WHERE username=? AND attribute='Expiration'"))
         {
             $stmt->bind_param("s", $username);
             $stmt->execute();
 
-            $stmt->store_result();
-            $rows = $stmt->num_rows;
+            $result = $stmt->get_result();
+            $row = $result->fetch_assoc();
+            $_result = $row['COUNT(*)'];
 
+            return printf($_result);
+
+            if($rows <= 0)
+            {
+                $query = "INSERT INTO radcheck (username,attribute,value,op) VALUES (?,'Expiration','".date("d F Y")."',':=')";
+            } else {
+                $query = "UPDATE radcheck SET value='".date("d F Y")."' WHERE username=? AND attribute='Expiration'";
+            }
 
             $stmt->close();
+
         } else {
             return "FreeRADIUS Module DataBase Error: " . $mysqli->error;
         }
 
-        if($rows <= 0)
-        {
-            $query = "INSERT INTO radcheck (username,attribute,value,op) VALUES (?,'Expiration','".date("d F Y")."',':=')";
-        } else {
-            $query = "UPDATE radcheck SET value='".date("d F Y")."' WHERE username=? AND attribute='Expiration'";
-        }
+        return $query;
 
         if($stmt = $mysqli->prepare($query))
         {
@@ -286,10 +288,12 @@ function freeradius_SuspendAccount(array $params)
 function freeradius_UnsuspendAccount(array $params)
 {
     try {
-        $username = $customFields['Username'];
-        $password = $customFields['Password'];
+        $customFields = $params['customfields'];
 
         $query = "SELECT COUNT(*) FROM radcheck WHERE username=? AND attribute='Expiration'";
+
+        /* Declaring MySQL Connection */
+        $mysqli = new mysqli($params['serverip'], $params['serverusername'], $params['serverpassword'], $params['serveraccesshash']);
 
         if($stmt = $mysqli->prepare($query))
         {
@@ -315,7 +319,7 @@ function freeradius_UnsuspendAccount(array $params)
         
         if($stmt = $mysqli->prepare($query))
         {
-            $stmt->bind_param("s", $username);
+            $stmt->bind_param("s", $customFields['Username']);
             $stmt->execute();
 
             $stmt->store_result();
