@@ -122,32 +122,31 @@ function freeradius_CreateAccount(array $params)
 
         $customFields = $params['customfields'];
 
+        $params['username'] = $params['clientsdetails']['email'];
+        $params['password'] = $customFields['Password'];
+
         /* Declaring MySQL Connection */
-        $mysqli = new mysqli($params['serverip'], $params['serverusername'], $params['serverpassword'], $params['serveraccesshash']);
+    
+        /*
+        *   Preparing PDO :D
+        */
+        try{
+            $pdo = new PDO("mysql:host={$params['serverip']};dbname={$params['serveraccesshash']}", $params['serverusername'], $params['serverpassword']); 
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        if ($mysqli->connect_error) {
-            return "Connection failed: " . $mysqli->connect_error;
+            $pdo->getAttribute(constant("PDO::ATTR_CONNECTION_STATUS"));
+        } catch(PDOException $e){
+            die("ERROR: Could not connect. " . $e->getMessage());
         }
 
-        $username = $customFields['Username'];
-        $password = $customFields['Password'];
+        $query = "INSERT INTO radcheck (username,attribute,op,value) VALUES (:username, 'MD5-Password', ':=', :password)";
 
-        $params['username'] = $username;
-        $params['password'] = $password;
-        
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $params['username'], PDO::PARAM_STR);
+        $stmt->bindParam(":password", md5($customFields['Password']), PDO::PARAM_STR);
+        $stmt->execute();
 
-        $securePassword = md5($password);
-
-        if($stmt = $mysqli->prepare("INSERT INTO radcheck (username,attribute,op,value) VALUES (?, 'MD5-Password', ':=', ?)"))
-        {
-            $stmt->bind_param("ss", $username,$securePassword);
-            $stmt->execute();
-        } else {
-            return "FreeRADIUS Module DataBase Error: " . $mysqli->error;
-        }
-
-        $stmt->close();
-        $mysqli->close();
+        unset($pdo);
 
     } catch (Exception $e) {
         // Record the error in WHMCS's module log.
@@ -183,78 +182,63 @@ function freeradius_SuspendAccount(array $params)
     try {
         $customFields = $params['customfields'];
 
-        $username = $customFields['Username'];
+        /*
+        *   Preparing PDO :D
+        */
+        try{
+            $pdo = new PDO("mysql:host={$params['serverip']};dbname={$params['serveraccesshash']}", $params['serverusername'], $params['serverpassword']); 
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        /* Declaring MySQL Connection */
-        $mysqli = new mysqli($params['serverip'], $params['serverusername'], $params['serverpassword'], $params['serveraccesshash']);
-
-        if ($mysqli->connect_error) {
-            return "Connection failed: " . $mysqli->connect_error;
+            $pdo->getAttribute(constant("PDO::ATTR_CONNECTION_STATUS"));
+        } catch(PDOException $e){
+            die("ERROR: Could not connect. " . $e->getMessage());
         }
 
-        $query = "SELECT COUNT(*) FROM radcheck WHERE username=?";
+        /*
+        *   First we check if the User is on the DB
+        */
 
-        if($stmt = $mysqli->prepare($query))
+        $query = "SELECT COUNT(*) as count FROM radcheck WHERE username=:username";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->execute();
+        $result = $stmt->fetchColumn(0);
+
+        if($result <= 0)
         {
-            $stmt->bind_param("s", $username);
-            $stmt->execute();
-
-            $stmt->store_result();
-
-            $rows = $stmt->num_rows;
-
-            if($rows <= 0)
-            {
-                return "User not found";
-            }
-
-            $stmt->free_result();
-            $stmt->close();
-
-        } else {
-            return "FreeRADIUS Module DataBase Error: " . $mysqli->error;
+            return "User not found";
         }
 
+        /*
+        *   Check if a Expiration Date is already on the DB
+        *   If not, we insert the date
+        *   Else, we update the value
+        */
 
-        if($stmt = $mysqli->prepare("SELECT COUNT(*) FROM radcheck WHERE username=? AND attribute='Expiration'"))
+        $query = "SELECT COUNT(*) as count FROM radcheck WHERE username=:username AND attribute='Expiration'";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->execute();
+        $result = $stmt->fetchColumn(0);
+
+        if($result <= 0)
         {
-            $stmt->bind_param("s", $username);
-            $stmt->execute();
-
-            $result = $stmt->get_result();
-            $row = $result->fetch_assoc();
-            $_result = $row['COUNT(*)'];
-
-            return printf($_result);
-
-            if($rows <= 0)
-            {
-                $query = "INSERT INTO radcheck (username,attribute,value,op) VALUES (?,'Expiration','".date("d F Y")."',':=')";
-            } else {
-                $query = "UPDATE radcheck SET value='".date("d F Y")."' WHERE username=? AND attribute='Expiration'";
-            }
-
-            $stmt->close();
-
+            $query = "INSERT INTO radcheck (username,attribute,value,op) VALUES (:username,'Expiration','".date("d F Y")."',':=')";
         } else {
-            return "FreeRADIUS Module DataBase Error: " . $mysqli->error;
+            $query = "UPDATE radcheck SET value='".date("d F Y")."' WHERE username=:username AND attribute='Expiration'";
         }
 
-        return $query;
+        /*
+        *   Run the Update/Insert Query
+        */
 
-        if($stmt = $mysqli->prepare($query))
-        {
-            $stmt->bind_param("s", $username);
-            $stmt->execute();
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->execute();
 
-            $stmt->close();
-        } else {
-            return "FreeRADIUS Module DataBase Error: " . $mysqli->error;
-        }
-
-        $mysqli->close();
-
-
+        unset($pdo);
 
     } catch (Exception $e) {
         // Record the error in WHMCS's module log.
@@ -290,52 +274,45 @@ function freeradius_UnsuspendAccount(array $params)
     try {
         $customFields = $params['customfields'];
 
-        $query = "SELECT COUNT(*) FROM radcheck WHERE username=? AND attribute='Expiration'";
+        /*
+        *   Preparing PDO :D
+        */
+        try{
+            $pdo = new PDO("mysql:host={$params['serverip']};dbname={$params['serveraccesshash']}", $params['serverusername'], $params['serverpassword']); 
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        /* Declaring MySQL Connection */
-        $mysqli = new mysqli($params['serverip'], $params['serverusername'], $params['serverpassword'], $params['serveraccesshash']);
-
-        if($stmt = $mysqli->prepare($query))
-        {
-            $stmt->bind_param("s", $username);
-            $stmt->execute();
-
-            $stmt->store_result();
-
-            $rows = $stmt->num_rows;
-
-            if($rows <= 0)
-            {
-                return "User not found";
-            }
-
-            $stmt->close();
-
-        } else {
-            return "FreeRADIUS Module DataBase Error: " . $mysqli->error;
+            $pdo->getAttribute(constant("PDO::ATTR_CONNECTION_STATUS"));
+        } catch(PDOException $e){
+            die("ERROR: Could not connect. " . $e->getMessage());
         }
 
-        $query = "DELETE FROM radcheck WHERE username=? AND attribute='Expiration'";
+        /*
+        *   First we check if the User have an expiration date on the DB
+        */
+
+        $query = "SELECT COUNT(*) as count FROM radcheck WHERE username=:username AND attribute='Expiration'";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->execute();
+        $result = $stmt->fetchColumn(0);
+
+        if($result <= 0)
+        {
+            return "User ".$customFields['Username']." is not Suspended";
+        }
+
+        /*
+        *   We delete the Expiration Date
+        */
+
+        $query = "DELETE FROM radcheck WHERE username=:username AND attribute='Expiration'";
         
-        if($stmt = $mysqli->prepare($query))
-        {
-            $stmt->bind_param("s", $customFields['Username']);
-            $stmt->execute();
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->execute();
 
-            $stmt->store_result();
-
-            $rows = $stmt->num_rows;
-
-            if($rows <= 0)
-            {
-                return "User not found";
-            }
-
-            $stmt->close();
-
-        } else {
-            return "FreeRADIUS Module DataBase Error: " . $mysqli->error;
-        }
+        unset($pdo);
 
         // Call the service's unsuspend function, using the values provided by
         // WHMCS in `$params`.
@@ -370,8 +347,51 @@ function freeradius_UnsuspendAccount(array $params)
 function freeradius_TerminateAccount(array $params)
 {
     try {
-        // Call the service's terminate function, using the values provided by
-        // WHMCS in `$params`.
+        $customFields = $params['customfields'];
+        /*
+        *   Preparing PDO :D
+        */
+        try{
+            $pdo = new PDO("mysql:host={$params['serverip']};dbname={$params['serveraccesshash']}", $params['serverusername'], $params['serverpassword']); 
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+            $pdo->getAttribute(constant("PDO::ATTR_CONNECTION_STATUS"));
+        } catch(PDOException $e){
+            die("ERROR: Could not connect. " . $e->getMessage());
+        }
+
+        /*
+        *   We delete all the user data from radreply
+        */
+
+        $query = "DELETE FROM radreply WHERE username=:username";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->execute();
+
+        /*
+        *   We delete all the user data from radusergroup
+        */
+
+        $query = "DELETE FROM radusergroup WHERE username=:username";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->execute();
+
+        /*
+        *   We delete all the user data from radcheck
+        */
+
+        $query = "DELETE FROM radcheck WHERE username=:username";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->execute();
+
+        unset($pdo);
+
     } catch (Exception $e) {
         // Record the error in WHMCS's module log.
         logModuleCall(
@@ -407,17 +427,33 @@ function freeradius_TerminateAccount(array $params)
 function freeradius_ChangePassword(array $params)
 {
     try {
-        // Call the service's change password function, using the values
-        // provided by WHMCS in `$params`.
-        //
-        // A sample `$params` array may be defined as:
-        //
-        // ```
-        // array(
-        //     'username' => 'The service username',
-        //     'password' => 'The new service password',
-        // )
-        // ```
+        $customFields = $params['customfields'];
+        
+       /*
+        *   First we check if the User is on the DB
+        */
+
+        $query = "SELECT COUNT(*) as count FROM radcheck WHERE username=:username";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->execute();
+        $result = $stmt->fetchColumn(0);
+
+        if($result <= 0)
+        {
+            return "User not found";
+        }
+
+        $query = "UPDATE radcheck SET value=:newPassword WHERE username=:username AND attribute='MD5-Password'";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->bindParam(":newPassword", $params['password'], PDO::PARAM_STR);
+        $stmt->execute();
+
+        unset($pdo);
+
     } catch (Exception $e) {
         // Record the error in WHMCS's module log.
         logModuleCall(
