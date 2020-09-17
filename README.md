@@ -1,7 +1,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/ToriVPN/WHMCS-FreeRadius">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="https://hinotori.moe/ToriVPN/Github_WHMCSModule.png" alt="Logo" width="80" height="80">
   </a>
 
   <h3 align="center">FreeRadius WHMCS Module</h3>
@@ -89,5 +89,5 @@ Project Link: [https://github.com/ToriVPN/WHMCS-FreeRadius](https://github.com/T
 
 ## Acknowledgements
 
-* [Hanabi]()
-* [CamiloHernandez]()
+* [Hanabi](https://twitter.com/hanabi_42/)
+* [CamiloHernandez](https://github.com/camilohernandez)
