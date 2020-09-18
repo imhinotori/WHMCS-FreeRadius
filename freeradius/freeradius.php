@@ -107,7 +107,7 @@ function freeradius_CreateAccount(array $params)
     try {
 
         $params['username'] = $params['clientsdetails']['email'];
-        $params['password'] = $params['customfields'];['Password'];
+        $params['password'] = $params['customfields']['Password'];
 
         /* Declaring MySQL Connection */
     
