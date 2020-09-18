@@ -74,20 +74,6 @@ function freeradius_ConfigOptions()
             'Size' => '25',
             'Default' => '',
             'Description' => 'FreeRADIUS group name'
-        ],
-        "username" => [
-            "FriendlyName" => "Username",
-            "Type" => "text", # Text Box
-            "Size" => "25", # Defines the Field Width
-            "Description" => "Textbox",
-            "Default" => "Example",
-        ],
-        "password" => [
-            "FriendlyName" => "Password",
-            "Type" => "password", # Password Field
-            "Size" => "25", # Defines the Field Width
-            "Description" => "Password",
-            "Default" => "Example",
         ]
     ];
 }
@@ -120,30 +106,45 @@ function freeradius_CreateAccount(array $params)
     */
     try {
 
-        $customFields = $params['customfields'];
-
         $params['username'] = $params['clientsdetails']['email'];
-        $params['password'] = $customFields['Password'];
+        $params['password'] = $params['customfields'];['Password'];
 
         /* Declaring MySQL Connection */
     
-        /*
-        *   Preparing PDO :D
+       /*
+        *   PDO Preparation
         */
+
         try{
             $pdo = new PDO("mysql:host={$params['serverip']};dbname={$params['serveraccesshash']}", $params['serverusername'], $params['serverpassword']); 
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
+    
             $pdo->getAttribute(constant("PDO::ATTR_CONNECTION_STATUS"));
         } catch(PDOException $e){
             die("ERROR: Could not connect. " . $e->getMessage());
+        }
+
+        /*
+        *   First we check if the User is on the DB
+        */
+
+        $query = "SELECT COUNT(*) as count FROM radcheck WHERE username=:username";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
+        $stmt->execute();
+        $result = $stmt->fetchColumn(0);
+    
+        if($result > 0)
+        {
+            return "Username is already used.";
         }
 
         $query = "INSERT INTO radcheck (username,attribute,op,value) VALUES (:username, 'MD5-Password', ':=', :password)";
 
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(":username", $params['username'], PDO::PARAM_STR);
-        $stmt->bindParam(":password", md5($customFields['Password']), PDO::PARAM_STR);
+        $stmt->bindParam(":password", md5($params['password']), PDO::PARAM_STR);
         $stmt->execute();
 
         unset($pdo);
@@ -182,32 +183,33 @@ function freeradius_SuspendAccount(array $params)
     try {
         $customFields = $params['customfields'];
 
-        /*
-        *   Preparing PDO :D
+       /*
+        *   PDO Preparation
         */
+
         try{
             $pdo = new PDO("mysql:host={$params['serverip']};dbname={$params['serveraccesshash']}", $params['serverusername'], $params['serverpassword']); 
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
+    
             $pdo->getAttribute(constant("PDO::ATTR_CONNECTION_STATUS"));
         } catch(PDOException $e){
             die("ERROR: Could not connect. " . $e->getMessage());
         }
-
-        /*
+        
+       /*
         *   First we check if the User is on the DB
         */
 
         $query = "SELECT COUNT(*) as count FROM radcheck WHERE username=:username";
 
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
         $stmt->execute();
         $result = $stmt->fetchColumn(0);
-
+    
         if($result <= 0)
         {
-            return "User not found";
+            return "User not found.";
         }
 
         /*
@@ -219,7 +221,7 @@ function freeradius_SuspendAccount(array $params)
         $query = "SELECT COUNT(*) as count FROM radcheck WHERE username=:username AND attribute='Expiration'";
 
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
         $stmt->execute();
         $result = $stmt->fetchColumn(0);
 
@@ -235,7 +237,7 @@ function freeradius_SuspendAccount(array $params)
         */
 
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
         $stmt->execute();
 
         unset($pdo);
@@ -274,18 +276,15 @@ function freeradius_UnsuspendAccount(array $params)
     try {
         $customFields = $params['customfields'];
 
-        /*
-        *   Preparing PDO :D
-        */
         try{
             $pdo = new PDO("mysql:host={$params['serverip']};dbname={$params['serveraccesshash']}", $params['serverusername'], $params['serverpassword']); 
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
+    
             $pdo->getAttribute(constant("PDO::ATTR_CONNECTION_STATUS"));
         } catch(PDOException $e){
             die("ERROR: Could not connect. " . $e->getMessage());
         }
-
+        
         /*
         *   First we check if the User have an expiration date on the DB
         */
@@ -293,13 +292,13 @@ function freeradius_UnsuspendAccount(array $params)
         $query = "SELECT COUNT(*) as count FROM radcheck WHERE username=:username AND attribute='Expiration'";
 
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
         $stmt->execute();
         $result = $stmt->fetchColumn(0);
 
         if($result <= 0)
         {
-            return "User ".$customFields['Username']." is not Suspended";
+            return "User ".$params['clientsdetails']['email']." is not Suspended";
         }
 
         /*
@@ -309,7 +308,7 @@ function freeradius_UnsuspendAccount(array $params)
         $query = "DELETE FROM radcheck WHERE username=:username AND attribute='Expiration'";
         
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
         $stmt->execute();
 
         unset($pdo);
@@ -354,7 +353,7 @@ function freeradius_TerminateAccount(array $params)
         try{
             $pdo = new PDO("mysql:host={$params['serverip']};dbname={$params['serveraccesshash']}", $params['serverusername'], $params['serverpassword']); 
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
+    
             $pdo->getAttribute(constant("PDO::ATTR_CONNECTION_STATUS"));
         } catch(PDOException $e){
             die("ERROR: Could not connect. " . $e->getMessage());
@@ -367,7 +366,7 @@ function freeradius_TerminateAccount(array $params)
         $query = "DELETE FROM radreply WHERE username=:username";
 
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
         $stmt->execute();
 
         /*
@@ -377,7 +376,7 @@ function freeradius_TerminateAccount(array $params)
         $query = "DELETE FROM radusergroup WHERE username=:username";
 
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
         $stmt->execute();
 
         /*
@@ -387,7 +386,7 @@ function freeradius_TerminateAccount(array $params)
         $query = "DELETE FROM radcheck WHERE username=:username";
 
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
         $stmt->execute();
 
         unset($pdo);
@@ -427,7 +426,15 @@ function freeradius_TerminateAccount(array $params)
 function freeradius_ChangePassword(array $params)
 {
     try {
-        $customFields = $params['customfields'];
+
+        try{
+            $pdo = new PDO("mysql:host={$params['serverip']};dbname={$params['serveraccesshash']}", $params['serverusername'], $params['serverpassword']); 
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+            $pdo->getAttribute(constant("PDO::ATTR_CONNECTION_STATUS"));
+        } catch(PDOException $e){
+            die("ERROR: Could not connect. " . $e->getMessage());
+        }
         
        /*
         *   First we check if the User is on the DB
@@ -436,20 +443,20 @@ function freeradius_ChangePassword(array $params)
         $query = "SELECT COUNT(*) as count FROM radcheck WHERE username=:username";
 
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
         $stmt->execute();
         $result = $stmt->fetchColumn(0);
-
+    
         if($result <= 0)
         {
-            return "User not found";
+            return "User not found.";
         }
 
         $query = "UPDATE radcheck SET value=:newPassword WHERE username=:username AND attribute='MD5-Password'";
 
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(":username", $customFields['Username'], PDO::PARAM_STR);
-        $stmt->bindParam(":newPassword", $params['password'], PDO::PARAM_STR);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
+        $stmt->bindParam(":newPassword", md5($params["password"]), PDO::PARAM_STR);
         $stmt->execute();
 
         unset($pdo);
