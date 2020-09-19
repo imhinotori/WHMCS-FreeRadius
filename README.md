@@ -20,15 +20,16 @@
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
 
-* [About the Project](#about-the-project)
-* [Getting Started](#getting-started)
-  * [Prerequisites](#prerequisites)
-  * [Installation](#installation)
-* [Usage](#usage)
-* [Roadmap](#roadmap)
-* [License](#license)
-* [Contact](#contact)
-* [Acknowledgements](#acknowledgements)
+- [Table of Contents](#table-of-contents)
+- [About The Project](#about-the-project)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Usage](#usage)
+- [Roadmap](#roadmap)
+- [License](#license)
+- [Contact](#contact)
+- [Acknowledgements](#acknowledgements)
 
 
 
@@ -90,4 +91,5 @@ Project Link: [https://github.com/ToriVPN/WHMCS-FreeRadius](https://github.com/T
 ## Acknowledgements
 
 * [Hanabi](https://twitter.com/hanabi_42/)
+* [Steven Eksteen](https://github.com/eksoverzero)
 * [CamiloHernandez](https://github.com/camilohernandez)

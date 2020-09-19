@@ -38,8 +38,6 @@ function freeradius_MetaData()
         'RequiresServer' => true, // Set true if module requires a server to work
         'DefaultNonSSLPort' => '3306', // Default Non-SSL Connection Port
         'DefaultSSLPort' => '3306', // Default SSL Connection Port
-        'ServiceSingleSignOnLabel' => 'Login to Panel as User',
-        'AdminSingleSignOnLabel' => 'Login to Panel as Admin',
     );
 }
 
@@ -586,96 +584,6 @@ function freeradius_AdminCustomButtonArray()
     );
 }
 
-/**
- * Additional actions a client user can invoke.
- *
- * Define additional actions a client user can perform for an instance of a
- * product/service.
- *
- * Any actions you define here will be automatically displayed in the available
- * list of actions within the client area.
- *
- * @return array
- */
-function freeradius_ClientAreaCustomButtonArray()
-{
-    return array(
-        "Action 1 Display Value" => "actionOneFunction",
-        "Action 2 Display Value" => "actionTwoFunction",
-    );
-}
-
-/**
- * Custom function for performing an additional action.
- *
- * You can define an unlimited number of custom functions in this way.
- *
- * Similar to all other module call functions, they should either return
- * 'success' or an error message to be displayed.
- *
- * @param array $params common module parameters
- *
- * @see https://developers.whmcs.com/provisioning-modules/module-parameters/
- * @see freeradius_AdminCustomButtonArray()
- *
- * @return string "success" or an error message
- */
-function freeradius_buttonOneFunction(array $params)
-{
-    try {
-        // Call the service's function, using the values provided by WHMCS in
-        // `$params`.
-    } catch (Exception $e) {
-        // Record the error in WHMCS's module log.
-        logModuleCall(
-            'freeradius',
-            __FUNCTION__,
-            $params,
-            $e->getMessage(),
-            $e->getTraceAsString()
-        );
-
-        return $e->getMessage();
-    }
-
-    return 'success';
-}
-
-/**
- * Custom function for performing an additional action.
- *
- * You can define an unlimited number of custom functions in this way.
- *
- * Similar to all other module call functions, they should either return
- * 'success' or an error message to be displayed.
- *
- * @param array $params common module parameters
- *
- * @see https://developers.whmcs.com/provisioning-modules/module-parameters/
- * @see freeradius_ClientAreaCustomButtonArray()
- *
- * @return string "success" or an error message
- */
-function freeradius_actionOneFunction(array $params)
-{
-    try {
-        // Call the service's function, using the values provided by WHMCS in
-        // `$params`.
-    } catch (Exception $e) {
-        // Record the error in WHMCS's module log.
-        logModuleCall(
-            'freeradius',
-            __FUNCTION__,
-            $params,
-            $e->getMessage(),
-            $e->getTraceAsString()
-        );
-
-        return $e->getMessage();
-    }
-
-    return 'success';
-}
 
 /**
  * Admin services tab additional fields.
