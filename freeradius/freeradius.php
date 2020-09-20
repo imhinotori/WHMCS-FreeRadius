@@ -72,7 +72,26 @@ function freeradius_ConfigOptions()
             'Size' => '25',
             'Default' => '',
             'Description' => 'FreeRADIUS group name'
+        ],
+        'Usage Limit' => [
+            'Type' => 'text',
+            'Size' => '25',
+            'Default' => '',
+            'Description' => 'FreeRadius Usage Limit in Bytes (0 or blank to disable)'
+        ],
+        'Rate Limit' => [
+            'Type' => 'text',
+            'Size' => '25',
+            'Default' => '',
+            'Description' => 'FreeRADIUS Rate Limit (Router Specific) (0 or blank to disable)'
+        ],
+        'Session Limit' => [
+            'Type' => 'text',
+            'Size' => '5',
+            'Default' => '',
+            'Description' => 'FreeRadius Session Limit (Fixed Number) (0 or blank to disable)'
         ]
+
     ];
 }
 
@@ -141,9 +160,34 @@ function freeradius_CreateAccount(array $params)
         $query = "INSERT INTO radcheck (username,attribute,op,value) VALUES (:username, 'MD5-Password', ':=', :password)";
 
         $stmt = $pdo->prepare($query);
-        $stmt->bindParam(":username", $params['username'], PDO::PARAM_STR);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
         $stmt->bindParam(":password", md5($params['password']), PDO::PARAM_STR);
         $stmt->execute();
+
+        $query = "INSERT INTO radusergroup(username, groupname) VALUES (:username, :groupname)";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
+        $stmt->bindParam(":groupname", $params["configoption1"], PDO::PARAM_STR);
+        $stmt->execute();
+
+        if($params["configoption3"])
+        {
+            $query = "INSERT INTO radreply (username,attribute,value,op) VALUES (:username,'Mikrotik-Rate-Limit',:ratelimit,':=')";
+            $stmt = $pdo->prepare($query);
+            $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
+            $stmt->bindParam(":ratelimit", $params["configoption3"], PDO::PARAM_STR);
+            $stmt->execute();
+        }
+
+        if($params["configoption4"])
+        {
+            $query = "INSERT INTO radcheck (username,attribute,value,op) VALUES (:username,'Simultaneous-Use',:sessionlimit,':=')";
+            $stmt = $pdo->prepare($query);
+            $stmt->bindParam(":username", $params['clientsdetails']['email'], PDO::PARAM_STR);
+            $stmt->bindParam(":ratelimit", $params["configoption4"], PDO::PARAM_STR);
+            $stmt->execute();
+        }
 
         unset($pdo);
 
@@ -578,10 +622,7 @@ function freeradius_TestConnection(array $params)
  */
 function freeradius_AdminCustomButtonArray()
 {
-    return array(
-        "Button 1 Display Value" => "buttonOneFunction",
-        "Button 2 Display Value" => "buttonTwoFunction",
-    );
+    return null;
 }
 
 
