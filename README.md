@@ -1,17 +1,17 @@
 <br />
 <p align="center">
-  <a href="https://github.com/ToriVPN/WHMCS-FreeRadius">
+  <a href="https://github.com/imhinotori/WHMCS-FreeRadius">
     <img src="https://hinotori.moe/ToriVPN/Github_WHMCSModule.png" alt="Logo">
   </a>
 
   <h3 align="center">FreeRadius WHMCS Module</h3>
 
   <p align="center">
-    Simple & <strike>Open Source</strike> FreeRadius Module for WHMCS
+    Simple & Open Source FreeRadius Module for WHMCS
     <br />
-    <a href="https://github.com/ToriVPN/WHMCS-FreeRadius/issues">Report Bug</a>
+    <a href="https://github.com/imhinotori/WHMCS-FreeRadius/issues">Report Bug</a>
     ·
-    <a href="https://github.com/ToriVPN/WHMCS-FreeRadius/issues">Request Feature</a>
+    <a href="https://github.com/imhinotori/WHMCS-FreeRadius/issues">Request Feature</a>
   </p>
 </p>
 
@@ -36,9 +36,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Module Photo][product-screenshot]](https://example.com)
-
-This module is a simple alternative for the official FreeRadius Module, and is based on @eksoverzero module.
+This module is a simple alternative for the official FreeRadius Module, and is heavily based on @eksoverzero module.
 
 ## Getting Started
 
@@ -56,7 +54,7 @@ This is an example of how to list things you need to use the software and how to
 1. Clone the repo
 
     ```sh
-    git clone https://github.com/ToriVPN/WHMCS-FreeRadius.git .
+    git clone https://github.com/imhinotori/WHMCS-FreeRadius.git .
     ```
 
 2. Copy 'freeradius' folder to WHMCS_INSTALL/modules/servers/
@@ -86,7 +84,7 @@ _No License Yet_
 
 Hinotori - [@imhinotori](https://twitter.com/imhinotori) - contacto@torivpn.net
 
-Project Link: [https://github.com/ToriVPN/WHMCS-FreeRadius](https://github.com/ToriVPN/WHMCS-FreeRadius)
+Project Link: [https://github.com/imhinotori/WHMCS-FreeRadius](https://github.com/ToriVPN/WHMCS-FreeRadius)
 
 ## Acknowledgements
 
